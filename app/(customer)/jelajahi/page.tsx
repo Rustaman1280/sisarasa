@@ -29,7 +29,7 @@ function getDiscount(original: number, discounted: number): number {
   return Math.round(((original - discounted) / original) * 100);
 }
 
-const categoryOptions = ['all', 'restoran', 'kafe', 'bakery', 'catering'];
+// categoryOptions removed — simplified flow without categories
 const sortOptions = [
   { label: 'Terbaru', value: 'newest' },
   { label: 'Harga Terendah', value: 'price-low' },
@@ -39,7 +39,7 @@ const sortOptions = [
 export default function JelajahiPage() {
   const [meals, setMeals] = useState<MealData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [category, setCategory] = useState('all');
+  // category filter removed
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -56,7 +56,6 @@ export default function JelajahiPage() {
   }, []);
 
   let filtered = meals
-    .filter((m) => category === 'all' || m.category === category)
     .filter((m) =>
       m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.storeName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -97,22 +96,7 @@ export default function JelajahiPage() {
       {/* Filters panel */}
       {showFilters && (
         <div className="glass rounded-xl p-4 mb-6 animate-fadeIn space-y-4">
-          <div>
-            <label className="text-xs font-medium text-muted mb-2 block">Kategori</label>
-            <div className="flex flex-wrap gap-2">
-              {categoryOptions.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    category === cat ? 'gradient-primary text-white' : 'bg-surface text-muted hover:text-foreground'
-                  }`}
-                >
-                  {cat === 'all' ? 'Semua' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Kategori filter removed */}
           <div>
             <label className="text-xs font-medium text-muted mb-2 block">Urutkan</label>
             <div className="flex flex-wrap gap-2">

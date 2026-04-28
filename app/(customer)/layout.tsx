@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { Home, Search, ClipboardList, User, LogOut, Bell } from 'lucide-react';
+import { Home, Search, ClipboardList, User, Bell, Heart } from 'lucide-react';
+import ProfileMenu from './components/ProfileMenu';
 import { useAuth } from '@/app/lib/auth-context';
 
 const bottomNavItems = [
   { label: 'Beranda', href: '/beranda', icon: Home },
   { label: 'Jelajahi', href: '/jelajahi', icon: Search },
+  { label: 'Favorit', href: '/favorit', icon: Heart },
   { label: 'Pesanan', href: '/pesanan', icon: ClipboardList },
   { label: 'Profil', href: '/profil', icon: User },
 ];
@@ -59,19 +61,35 @@ export default function CustomerLayout({
             <span className="text-lg font-bold gradient-text-primary hidden sm:block">SisaRasa</span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          {/* Desktop nav: show same items as mobile bottom nav */}
+          <nav className="hidden md:flex items-center gap-2 ml-6">
+            {bottomNavItems
+              .filter((item) => item.href !== '/profil')
+              .map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium ${
+                    isActive ? 'text-primary' : 'text-muted hover:text-foreground'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span className="hidden lg:inline">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="flex items-center gap-3 relative">
             <button className="p-2 rounded-lg glass hover:bg-surface-hover transition-colors relative">
               <Bell className="w-5 h-5 text-muted" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
             </button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full gradient-secondary flex items-center justify-center text-white text-sm font-bold">
-                {user.displayName?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-              <span className="text-sm font-medium hidden sm:block">
-                {user.displayName || 'User'}
-              </span>
-            </div>
+
+            {/* Profile dropdown trigger */}
+            <ProfileMenu user={user} logout={logout} />
           </div>
         </div>
       </header>

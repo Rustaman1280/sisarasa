@@ -23,7 +23,8 @@ function RegisterForm() {
 
   // Store fields
   const [storeName, setStoreName] = useState('');
-  const [storeCategory, setStoreCategory] = useState<StoreCategory>('restoran');
+  // categories removed from registration; default to 'lainnya'
+  const [storeCategory, setStoreCategory] = useState<StoreCategory>('lainnya');
   const [storeAddress, setStoreAddress] = useState('');
   const [storeDescription, setStoreDescription] = useState('');
 
@@ -287,20 +288,7 @@ function RegisterForm() {
               </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-muted mb-1.5 block">Kategori</label>
-              <select
-                value={storeCategory}
-                onChange={(e) => setStoreCategory(e.target.value as StoreCategory)}
-                className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-colors"
-              >
-                <option value="restoran">🍽️ Restoran</option>
-                <option value="kafe">☕ Kafe</option>
-                <option value="bakery">🥐 Bakery</option>
-                <option value="catering">🍱 Catering</option>
-                <option value="lainnya">📦 Lainnya</option>
-              </select>
-            </div>
+            {/* Kategori dihapus untuk menyederhanakan alur pendaftaran */}
 
             <div>
               <label className="text-sm font-medium text-muted mb-1.5 block">Alamat</label>

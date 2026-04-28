@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { getMeal, updateMeal } from '@/app/lib/firestore';
+import { uploadImage, generateImagePath } from '@/app/lib/storage';
 import { MealData } from '@/app/lib/types';
 import { use } from 'react';
 
@@ -22,6 +23,9 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
   const [quantity, setQuantity] = useState('');
   const [pickupStart, setPickupStart] = useState('');
   const [pickupEnd, setPickupEnd] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [currentPhoto, setCurrentPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchMeal() {
@@ -35,6 +39,7 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
           setQuantity(meal.quantity.toString());
           setPickupStart(meal.pickupTimeStart);
           setPickupEnd(meal.pickupTimeEnd);
+          setCurrentPhoto(meal.photoURL || null);
         }
       } catch (err) {
         console.error(err);
@@ -49,6 +54,15 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
     e.preventDefault();
     setSaving(true);
     try {
+      let photoURLUpdate: Partial<import('@/app/lib/types').MealData> = {} as any;
+      if (file) {
+        const path = generateImagePath('meals', file.name);
+        const url = await uploadImage(file, path);
+        photoURLUpdate = { photoURL: url } as any;
+      } else if (currentPhoto === '') {
+        photoURLUpdate = { photoURL: '' } as any;
+      }
+
       await updateMeal(id, {
         title,
         description: desc,
@@ -57,6 +71,7 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
         quantity: parseInt(quantity, 10),
         pickupTimeStart: pickupStart,
         pickupTimeEnd: pickupEnd,
+        ...photoURLUpdate,
       });
       router.push('/produk');
     } catch (err) {
@@ -85,6 +100,27 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
             <label className="text-sm font-medium text-muted mb-1.5 block">Deskripsi</label>
             <textarea required value={desc} onChange={e=>setDesc(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 resize-none" />
           </div>
+            <div>
+              <label className="text-sm font-medium text-muted mb-1.5 block">Foto Produk (opsional)</label>
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-surface border border-black/5 text-sm cursor-pointer">
+                  <Upload className="w-4 h-4" />
+                  <span>Ganti Foto</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setFile(f);
+                    if (f) setPreview(URL.createObjectURL(f));
+                  }} />
+                </label>
+                {(preview || currentPhoto) && (
+                  <div className="w-20 h-20 rounded overflow-hidden bg-surface relative">
+                    <img src={preview || currentPhoto || ''} alt="preview" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => { setCurrentPhoto(''); setFile(null); setPreview(null); }} className="absolute top-1 right-1 text-xs bg-black/30 text-white rounded px-1">Hapus</button>
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] text-muted mt-1">Opsional: ubah atau hapus foto produk.</p>
+            </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-muted mb-1.5 block">Harga Asli (Rp)</label>

@@ -45,7 +45,7 @@ export default function ProfilPage() {
       </div>
 
       {/* Logout */}
-      <button onClick={handleLogout} className="w-full py-3 rounded-xl glass hover:bg-danger/10 text-danger font-medium flex items-center justify-center gap-2 transition-colors">
+      <button onClick={handleLogout} className="w-full py-3 rounded-xl glass hover:bg-danger/10 text-danger font-medium flex items-center justify-center gap-2 transition-colors md:hidden">
         <LogOut className="w-5 h-5" /> Keluar
       </button>
     </div>

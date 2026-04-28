@@ -2,18 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, Clock, MapPin, Star, ArrowRight, Flame, Tag } from 'lucide-react';
+import { Search, Clock, Star, ArrowRight, Flame } from 'lucide-react';
 import { useAuth } from '@/app/lib/auth-context';
-import { getMeals } from '@/app/lib/firestore';
+import { getMeals, getStore, getUser, updateUser } from '@/app/lib/firestore';
 import { MealData } from '@/app/lib/types';
-
-const categories = [
-  { label: 'Semua', emoji: '🍽️', value: 'all' },
-  { label: 'Restoran', emoji: '🍛', value: 'restoran' },
-  { label: 'Kafe', emoji: '☕', value: 'kafe' },
-  { label: 'Bakery', emoji: '🥐', value: 'bakery' },
-  { label: 'Catering', emoji: '🍱', value: 'catering' },
-];
 
 // Fallback mock meals when Firestore is empty
 const mockMeals: MealData[] = [
@@ -53,27 +45,102 @@ function getGreeting(): string {
 export default function BerandaPage() {
   const { user } = useAuth();
   const [meals, setMeals] = useState<MealData[]>([]);
-  const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  const timeWindows = [
+    { key: 'rekomendasi', label: 'Rekomendasi' },
+    { key: 'pagi', label: 'Pagi (06-11)' },
+    { key: 'siang', label: 'Siang (12-17)' },
+    { key: 'malam', label: 'Malam (18-24)' },
+  ] as const;
+
+  
+
+  function parseHour(t: string) {
+    const [h] = t.split(':');
+    const n = parseInt(h, 10);
+    return Number.isNaN(n) ? 0 : n;
+  }
+
+  function groupByStore(list: MealData[]) {
+    const map = new Map<string, { storeId: string; storeName: string; photoURL?: string; meals: MealData[] }>();
+    list.forEach((m) => {
+      const cur = map.get(m.storeId);
+      if (cur) {
+        cur.meals.push(m);
+        if (!cur.photoURL && m.photoURL) cur.photoURL = m.photoURL;
+      } else {
+        map.set(m.storeId, { storeId: m.storeId, storeName: m.storeName, photoURL: m.photoURL, meals: [m] });
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  function pickRecommended(stores: ReturnType<typeof groupByStore>) {
+    if (stores.length === 0) return null;
+    const sorted = [...stores].sort((a, b) => b.meals.length - a.meals.length);
+    return sorted[0];
+  }
+
+  function storesForWindow(stores: ReturnType<typeof groupByStore>, key: 'rekomendasi' | 'pagi' | 'siang' | 'malam') {
+    if (key === 'rekomendasi') return stores;
+    return stores.filter((s) => s.meals.some((m) => {
+      const h = parseHour(m.pickupTimeStart);
+      if (key === 'pagi') return h >= 6 && h <= 11;
+      if (key === 'siang') return h >= 12 && h <= 17;
+      return h >= 18 && h <= 24;
+    }));
+  }
+
+  // Ratings are handled on the meal detail page. Beranda shows read-only averages.
 
   useEffect(() => {
     async function fetchMeals() {
       try {
         const data = await getMeals({ activeOnly: true });
-        setMeals(data.length > 0 ? data : mockMeals);
+        let list = data.length > 0 ? data : mockMeals;
+        // If meal has no photoURL, try to load store photo
+        const filled = await Promise.all(list.map(async (m) => {
+          if (m.photoURL && m.photoURL.length > 0) return m;
+          try {
+            const s = await getStore(m.storeId);
+            if (s && s.photoURL) {
+              return { ...m, photoURL: s.photoURL };
+            }
+          } catch {}
+          return m;
+        }));
+        setMeals(filled);
       } catch {
         setMeals(mockMeals);
       }
     }
     fetchMeals();
+
+      async function loadUserFavorites() {
+        if (!user?.uid) return;
+        try {
+          const u = await getUser(user.uid);
+          if (u && Array.isArray((u as any).favorites)) {
+            setFavorites((u as any).favorites as string[]);
+          }
+        } catch {}
+      }
+      loadUserFavorites();
   }, []);
 
   const filteredMeals = meals.filter((meal) => {
-    const matchCategory = activeCategory === 'all' || meal.category === activeCategory;
     const matchSearch = meal.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       meal.storeName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCategory && matchSearch;
+    return matchSearch;
   });
+
+  const promos = [...filteredMeals].sort((a, b) => getDiscount(a.originalPrice, a.discountedPrice) - getDiscount(b.originalPrice, b.discountedPrice)).slice(0, 8);
+
+  const stores = groupByStore(filteredMeals);
+  const recommended = pickRecommended(stores);
+  const others = stores.filter((s) => !recommended || s.storeId !== recommended.storeId);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -99,24 +166,6 @@ export default function BerandaPage() {
         />
       </div>
 
-      {/* Categories */}
-      <div className="flex gap-2 mb-8 overflow-x-auto no-scrollbar pb-1">
-        {categories.map((cat) => (
-          <button
-            key={cat.value}
-            onClick={() => setActiveCategory(cat.value)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-              activeCategory === cat.value
-                ? 'gradient-primary text-white shadow-lg shadow-primary/25'
-                : 'glass text-muted hover:text-foreground hover:bg-surface-hover'
-            }`}
-          >
-            <span>{cat.emoji}</span>
-            {cat.label}
-          </button>
-        ))}
-      </div>
-
       {/* Promo Section */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -129,35 +178,54 @@ export default function BerandaPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredMeals.map((meal) => (
-            <Link
-              key={meal.id}
-              href={`/makanan/${meal.id}`}
-              className="rounded-2xl glass card-hover overflow-hidden group"
-            >
-              {/* Image */}
-              <div className="relative h-40 bg-gradient-to-br from-surface-light to-surface flex items-center justify-center overflow-hidden">
-                <span className="text-5xl group-hover:scale-125 transition-transform duration-500">
-                  {emojiMap[meal.category] || '🍽️'}
-                </span>
+        <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
+          {promos.map((meal) => (
+            <Link key={meal.id} href={`/makanan/${meal.id}`} className="min-w-[260px] rounded-2xl glass overflow-hidden flex-shrink-0">
+              <div className="h-40 relative bg-gradient-to-br from-surface-light to-surface flex items-center justify-center overflow-hidden">
+                {meal.photoURL ? (
+                  <img src={meal.photoURL} alt={meal.title} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-5xl">
+                    {emojiMap[meal.category] || '🍽️'}
+                  </span>
+                )}
+                <div className="absolute top-3 right-3 flex items-center gap-2">
+                  <button
+                    aria-label="favorite"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      if (!user?.uid) return alert('Silakan masuk untuk menandai favorit.');
+                      const isFav = favorites.includes(meal.id);
+                      const next = isFav ? favorites.filter((id) => id !== meal.id) : [...favorites, meal.id];
+                      try {
+                        await updateUser(user.uid, { favorites: next } as any);
+                        setFavorites(next);
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }}
+                    className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow-sm"
+                  >
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill={favorites.includes(meal.id) ? 'red' : 'none'} stroke={favorites.includes(meal.id) ? 'red' : 'currentColor'} strokeWidth="1.5" className="opacity-90">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                  </button>
+                </div>
 
-                {/* Discount badge */}
                 <div className="absolute top-3 left-3 gradient-primary px-2.5 py-1 rounded-full text-xs font-bold text-white">
                   {meal.discountedPrice === 0 ? 'GRATIS' : `-${getDiscount(meal.originalPrice, meal.discountedPrice)}%`}
                 </div>
 
                 {meal.quantityLeft <= 3 && (
-                  <div className="absolute top-3 right-3 bg-danger px-2.5 py-1 rounded-full text-xs font-bold text-white">
+                  <div className="absolute top-3 right-12 bg-danger px-2.5 py-1 rounded-full text-xs font-bold text-white">
                     Sisa {meal.quantityLeft}!
                   </div>
                 )}
               </div>
 
-              {/* Content */}
               <div className="p-4">
                 <p className="text-xs text-muted mb-1">{meal.storeName}</p>
-                <h3 className="text-sm font-bold mb-2 group-hover:text-primary transition-colors">
+                <h3 className="text-sm font-bold mb-2">
                   {meal.title}
                 </h3>
 
@@ -172,23 +240,107 @@ export default function BerandaPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs text-muted">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {meal.pickupTimeStart}-{meal.pickupTimeEnd}
-                  </span>
-                </div>
+                  <div className="flex items-center gap-3 text-xs text-muted">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {meal.pickupTimeStart}-{meal.pickupTimeEnd}
+                    </span>
+                  </div>
+
+                  {((meal as any).ratingCount || 0) > 0 ? (
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="text-yellow-400 text-sm">
+                        {Array.from({ length: 5 }).map((_, i) => i < Math.round((meal as any).rating || 0) ? '★' : '☆').join('')}
+                      </div>
+                      <span className="text-xs text-muted ml-2">{(meal as any).rating} ({(meal as any).ratingCount || 0})</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted mt-2">Belum dinilai</div>
+                  )}
               </div>
             </Link>
           ))}
         </div>
 
-        {filteredMeals.length === 0 && (
+        {promos.length === 0 && (
           <div className="text-center py-12">
             <span className="text-4xl block mb-3">🍽️</span>
-            <p className="text-muted">Tidak ada makanan ditemukan.</p>
+            <p className="text-muted">Tidak ada promo ditemukan.</p>
           </div>
         )}
+      </div>
+
+      {/* Recommended & time-window sections */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Star className="w-5 h-5 text-primary" />
+            Rekomendasi & Sesuai Waktu
+          </h2>
+        </div>
+
+        {recommended && (
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold mb-2">Direkomendasikan untuk Anda</h3>
+            <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
+              <Link href={`/makanan/${recommended.meals[0].id}`} className="min-w-[260px] rounded-2xl glass overflow-hidden flex-shrink-0">
+                <div className="h-40 relative bg-gradient-to-br from-surface-light to-surface flex items-center justify-center overflow-hidden">
+                  {recommended.photoURL ? (
+                    <img src={recommended.photoURL} alt={recommended.storeName} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-4xl">🍽️</div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <div className="text-xs text-muted">{recommended.storeName}</div>
+                  <div className="font-bold">{recommended.meals[0].title}</div>
+                  <div className="text-sm text-primary mt-2">{formatPrice(recommended.meals[0].discountedPrice)}</div>
+                  {(((recommended.meals[0] as any).ratingCount || 0) > 0) ? (
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="text-yellow-400 text-sm">
+                        {Array.from({ length: 5 }).map((_, i) => i < Math.round(((recommended.meals[0] as any).rating || 0)) ? '★' : '☆').join('')}
+                      </div>
+                      <span className="text-xs text-muted ml-2">{(recommended.meals[0] as any).rating} ({(recommended.meals[0] as any).ratingCount || 0})</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted mt-2">Belum dinilai</div>
+                  )}
+                </div>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Render each time window as its own stacked section */}
+              {timeWindows.filter(w => w.key !== 'rekomendasi').map((w) => (
+          <div key={w.key} className="mb-6">
+            <h4 className="text-sm font-semibold mb-3">{w.label}</h4>
+            <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
+              {storesForWindow(others, w.key as 'pagi' | 'siang' | 'malam').map((s) => (
+                <Link key={s.storeId} href={`/makanan/${s.meals[0].id}`} className="min-w-[220px] rounded-2xl glass overflow-hidden flex-shrink-0">
+                  <div className="h-36 relative bg-gradient-to-br from-surface-light to-surface flex items-center justify-center overflow-hidden">
+                    {s.photoURL ? <img src={s.photoURL} alt={s.storeName} className="w-full h-full object-cover" /> : <div className="text-3xl">🍽️</div>}
+                  </div>
+                  <div className="p-3">
+                    <div className="text-xs text-muted">{s.storeName}</div>
+                    <div className="font-bold text-sm">{s.meals[0].title}</div>
+                    <div className="text-sm text-primary mt-1">{formatPrice(s.meals[0].discountedPrice)}</div>
+                    {(((s.meals[0] as any).ratingCount || 0) > 0) ? (
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="text-yellow-400 text-sm">
+                          {Array.from({ length: 5 }).map((_, i) => i < Math.round(((s.meals[0] as any).rating || 0)) ? '★' : '☆').join('')}
+                        </div>
+                        <span className="text-xs text-muted ml-2">{(s.meals[0] as any).rating} ({(s.meals[0] as any).ratingCount || 0})</span>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted mt-2">Belum dinilai</div>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
