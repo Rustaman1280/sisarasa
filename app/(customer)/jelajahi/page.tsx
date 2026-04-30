@@ -6,17 +6,6 @@ import { Search, Clock, Star, SlidersHorizontal, X } from 'lucide-react';
 import { getMeals } from '@/app/lib/firestore';
 import { MealData } from '@/app/lib/types';
 
-const mockMeals: MealData[] = [
-  { id: 'm1', storeId: 's1', storeName: 'Sakura Sushi Bar', title: 'Mystery Box Sushi', description: 'Paket sushi pilihan chef', originalPrice: 85000, discountedPrice: 35000, quantity: 10, quantityLeft: 3, category: 'restoran', pickupTimeStart: '19:00', pickupTimeEnd: '21:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm2', storeId: 's2', storeName: 'Boulangerie Paris', title: 'Paket Roti & Pastry', description: 'Assorted roti dan pastry', originalPrice: 60000, discountedPrice: 20000, quantity: 15, quantityLeft: 5, category: 'bakery', pickupTimeStart: '17:00', pickupTimeEnd: '19:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm3', storeId: 's3', storeName: 'Dapur Bu Haji', title: 'Nasi Box Spesial', description: 'Nasi box lengkap', originalPrice: 35000, discountedPrice: 15000, quantity: 20, quantityLeft: 8, category: 'restoran', pickupTimeStart: '13:00', pickupTimeEnd: '15:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm4', storeId: 's4', storeName: 'Green Vibes Café', title: 'Smoothie Bowl Mix', description: 'Smoothie bowl segar', originalPrice: 45000, discountedPrice: 0, quantity: 5, quantityLeft: 2, category: 'kafe', pickupTimeStart: '15:00', pickupTimeEnd: '17:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm5', storeId: 's5', storeName: 'Pizzeria Roma', title: 'Pizza Margherita', description: 'Pizza klasik', originalPrice: 75000, discountedPrice: 25000, quantity: 8, quantityLeft: 4, category: 'restoran', pickupTimeStart: '20:00', pickupTimeEnd: '22:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm6', storeId: 's6', storeName: 'Sweet Corner', title: 'Kue Ulang Tahun', description: 'Kue cantik', originalPrice: 120000, discountedPrice: 40000, quantity: 3, quantityLeft: 1, category: 'bakery', pickupTimeStart: '16:00', pickupTimeEnd: '18:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm7', storeId: 's7', storeName: 'Warung Padang Jaya', title: 'Nasi Padang Komplit', description: 'Nasi padang dengan rendang', originalPrice: 40000, discountedPrice: 18000, quantity: 12, quantityLeft: 6, category: 'restoran', pickupTimeStart: '12:00', pickupTimeEnd: '14:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm8', storeId: 's8', storeName: 'Kopi Kenangan', title: 'Paket Kopi + Snack', description: 'Kopi dan snack pilihan', originalPrice: 50000, discountedPrice: 20000, quantity: 10, quantityLeft: 7, category: 'kafe', pickupTimeStart: '14:00', pickupTimeEnd: '16:00', isActive: true, photoURL: '', createdAt: {} as any },
-];
-
 const emojiMap: Record<string, string> = { restoran: '🍛', kafe: '☕', bakery: '🥐', catering: '🍱' };
 
 function formatPrice(price: number): string {
@@ -47,9 +36,9 @@ export default function JelajahiPage() {
     async function fetchMeals() {
       try {
         const data = await getMeals({ activeOnly: true });
-        setMeals(data.length > 0 ? data : mockMeals);
+        setMeals(data);
       } catch {
-        setMeals(mockMeals);
+        setMeals([]);
       }
     }
     fetchMeals();

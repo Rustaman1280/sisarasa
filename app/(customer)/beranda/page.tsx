@@ -7,16 +7,6 @@ import { useAuth } from '@/app/lib/auth-context';
 import { getMeals, getStore, getUser, updateUser } from '@/app/lib/firestore';
 import { MealData } from '@/app/lib/types';
 
-// Fallback mock meals when Firestore is empty
-const mockMeals: MealData[] = [
-  { id: 'm1', storeId: 's1', storeName: 'Sakura Sushi Bar', title: 'Mystery Box Sushi', description: 'Paket sushi pilihan chef', originalPrice: 85000, discountedPrice: 35000, quantity: 10, quantityLeft: 3, category: 'restoran', pickupTimeStart: '19:00', pickupTimeEnd: '21:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm2', storeId: 's2', storeName: 'Boulangerie Paris', title: 'Paket Roti & Pastry', description: 'Assorted roti dan pastry hari ini', originalPrice: 60000, discountedPrice: 20000, quantity: 15, quantityLeft: 5, category: 'bakery', pickupTimeStart: '17:00', pickupTimeEnd: '19:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm3', storeId: 's3', storeName: 'Dapur Bu Haji', title: 'Nasi Box Spesial', description: 'Nasi box lengkap dengan lauk pauk', originalPrice: 35000, discountedPrice: 15000, quantity: 20, quantityLeft: 8, category: 'restoran', pickupTimeStart: '13:00', pickupTimeEnd: '15:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm4', storeId: 's4', storeName: 'Green Vibes Café', title: 'Smoothie Bowl Mix', description: 'Smoothie bowl dengan topping buah segar', originalPrice: 45000, discountedPrice: 0, quantity: 5, quantityLeft: 2, category: 'kafe', pickupTimeStart: '15:00', pickupTimeEnd: '17:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm5', storeId: 's5', storeName: 'Pizzeria Roma', title: 'Pizza Margherita', description: 'Pizza klasik dengan mozarella dan basil', originalPrice: 75000, discountedPrice: 25000, quantity: 8, quantityLeft: 4, category: 'restoran', pickupTimeStart: '20:00', pickupTimeEnd: '22:00', isActive: true, photoURL: '', createdAt: {} as any },
-  { id: 'm6', storeId: 's6', storeName: 'Sweet Corner', title: 'Kue Ulang Tahun', description: 'Kue dekorasi cantik untuk dinikmati', originalPrice: 120000, discountedPrice: 40000, quantity: 3, quantityLeft: 1, category: 'bakery', pickupTimeStart: '16:00', pickupTimeEnd: '18:00', isActive: true, photoURL: '', createdAt: {} as any },
-];
-
 const emojiMap: Record<string, string> = {
   restoran: '🍛',
   kafe: '☕',
@@ -99,7 +89,7 @@ export default function BerandaPage() {
     async function fetchMeals() {
       try {
         const data = await getMeals({ activeOnly: true });
-        let list = data.length > 0 ? data : mockMeals;
+        let list = data;
         // If meal has no photoURL, try to load store photo
         const filled = await Promise.all(list.map(async (m) => {
           if (m.photoURL && m.photoURL.length > 0) return m;
@@ -113,7 +103,7 @@ export default function BerandaPage() {
         }));
         setMeals(filled);
       } catch {
-        setMeals(mockMeals);
+        setMeals([]);
       }
     }
     fetchMeals();
