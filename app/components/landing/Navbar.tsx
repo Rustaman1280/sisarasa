@@ -37,9 +37,9 @@ export default function Navbar() {
             <Image 
               src="/logo.png" 
               alt="SisaRasa Logo" 
-              width={72} 
-              height={54} 
-              className="w-[72px] h-[54px] object-contain group-hover:scale-105 transition-transform" 
+              width={80} 
+              height={40} 
+              className="w-[80px] h-[40px] object-contain group-hover:scale-105 transition-transform" 
             />
             <div>
               <span className="text-xl font-bold gradient-text-primary">

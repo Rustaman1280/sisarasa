@@ -6,10 +6,8 @@ import { getStoreByOwner, updateStore } from '@/app/lib/firestore';
 import { StoreData } from '@/app/lib/types';
 import { Loader2 } from 'lucide-react';
 
-const CITIES = [
-  'Jakarta', 'Bandung', 'Surabaya', 'Yogyakarta', 'Semarang',
-  'Bali', 'Medan', 'Makassar', 'Palembang', 'Balikpapan', 'Lainnya'
-];
+interface Province { code: string; name: string; }
+interface Regency { code: string; name: string; }
 
 export default function ProfilTokoPage() {
   const { user } = useAuth();
@@ -21,7 +19,12 @@ export default function ProfilTokoPage() {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [address, setAddress] = useState('');
-  const [city, setCity] = useState(CITIES[0]);
+  const [city, setCity] = useState('');
+  
+  // Wilayah State
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [regencies, setRegencies] = useState<Regency[]>([]);
+  const [selectedProvince, setSelectedProvince] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -36,7 +39,29 @@ export default function ProfilTokoPage() {
         setLoading(false);
       });
     }
+    
+    // Fetch Provinces
+    fetch('/api/wilayah/provinces.json')
+      .then(res => res.json())
+      .then(data => setProvinces(data.data || []))
+      .catch(console.error);
   }, [user]);
+
+  useEffect(() => {
+    if (selectedProvince) {
+      fetch(`/api/wilayah/regencies/${selectedProvince}.json`)
+        .then(res => res.json())
+        .then(data => {
+          setRegencies(data.data || []);
+          if (data.data && data.data.length > 0) {
+            setCity(data.data[0].name);
+          }
+        })
+        .catch(console.error);
+    } else {
+      setRegencies([]);
+    }
+  }, [selectedProvince]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,13 +93,25 @@ export default function ProfilTokoPage() {
             <label className="text-sm font-medium text-muted mb-1.5 block">Deskripsi Singkat</label>
             <textarea required value={desc} onChange={e=>setDesc(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 resize-none" />
           </div>
-          <div>
-            <label className="text-sm font-medium text-muted mb-1.5 block">Kota</label>
-            <select required value={city} onChange={e=>setCity(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50">
-              {CITIES.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-muted mb-1.5 block">Provinsi</label>
+              <select value={selectedProvince} onChange={e=>setSelectedProvince(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50">
+                <option value="">-- Pilih Provinsi --</option>
+                {provinces.map(p => (
+                  <option key={p.code} value={p.code}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted mb-1.5 block">Kota/Kabupaten</label>
+              <select required value={city} onChange={e=>setCity(e.target.value)} disabled={!selectedProvince} className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 disabled:opacity-50">
+                {regencies.length === 0 ? <option value={city}>{city || '-- Pilih Kota --'}</option> : null}
+                {regencies.map(c => (
+                  <option key={c.code} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div>
             <label className="text-sm font-medium text-muted mb-1.5 block">Alamat Lengkap</label>

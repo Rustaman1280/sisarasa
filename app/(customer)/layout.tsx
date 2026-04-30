@@ -47,6 +47,13 @@ export default function CustomerLayout({
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {/* Running Notification Ticker */}
+      <div className="bg-primary text-white text-xs py-1.5 overflow-hidden flex items-center">
+        <div className="animate-marquee whitespace-nowrap">
+          🚀 Promo Spesial Hari Ini! Dapatkan diskon hingga 50% untuk makanan pilihan. Hemat uang, selamatkan bumi! 🌍 | ✨ Jangan lupa ambil pesanan tepat waktu di toko terdekatmu!
+        </div>
+      </div>
+
       {/* Top Navbar */}
       <header className="sticky top-0 z-40 glass-strong">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -54,11 +61,10 @@ export default function CustomerLayout({
             <Image 
               src="/logo.png" 
               alt="SisaRasa Logo" 
-              width={60} 
-              height={45} 
-              className="w-[60px] h-[45px] object-contain group-hover:scale-105 transition-transform" 
+              width={100} 
+              height={50} 
+              className="w-[120px] h-[60px] object-contain group-hover:scale-105 transition-transform" 
             />
-            <span className="text-lg font-bold gradient-text-primary hidden sm:block">SisaRasa</span>
           </Link>
 
           {/* Desktop nav: show same items as mobile bottom nav */}

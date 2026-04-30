@@ -112,6 +112,11 @@ body {
   100% { background-position: 0% 50%; }
 }
 
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.6s ease-out forwards;
 }
@@ -157,6 +162,12 @@ body {
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradientShift 6s ease infinite;
+}
+
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 20s linear infinite;
 }
 
 /* Stagger delays */

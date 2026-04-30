@@ -76,8 +76,8 @@ export default function TokoLayout({
               src="/logo.png" 
               alt="SisaRasa Logo" 
               width={80} 
-              height={60} 
-              className="w-[80px] h-[60px] object-contain group-hover:scale-105 transition-transform" 
+              height={40} 
+              className="w-[80px] h-[40px] object-contain group-hover:scale-105 transition-transform" 
             />
             <span className="text-xl font-bold gradient-text-primary">SisaRasa</span>
           </Link>
@@ -131,9 +131,9 @@ export default function TokoLayout({
             <Image 
               src="/logo.png" 
               alt="SisaRasa Logo" 
-              width={60} 
-              height={45} 
-              className="w-[60px] h-[45px] object-contain group-hover:scale-105 transition-transform" 
+              width={80} 
+              height={40} 
+              className="w-[80px] h-[40px] object-contain group-hover:scale-105 transition-transform" 
             />
           </Link>
           <button onClick={() => setIsMobileOpen(true)} className="p-2 text-muted hover:text-foreground">

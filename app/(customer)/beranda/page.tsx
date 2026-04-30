@@ -103,6 +103,10 @@ export default function BerandaPage() {
               }
             } catch {}
           }
+          if (!updated.storeCity) {
+            const dummyCities = ['Jakarta', 'Bandung', 'Surabaya', 'Yogyakarta', 'Semarang'];
+            updated.storeCity = dummyCities[updated.storeName.length % dummyCities.length];
+          }
           return updated;
         }));
         setMeals(filled);

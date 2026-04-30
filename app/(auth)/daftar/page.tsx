@@ -13,13 +13,17 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const isGoogleRedirect = searchParams.get('google') === 'true';
 
-  const [step, setStep] = useState<'role' | 'form'>(isGoogleRedirect ? 'role' : 'role');
+  const [step, setStep] = useState<'role' | 'form' | 'otp'>(isGoogleRedirect ? 'role' : 'role');
   const [role, setRole] = useState<UserRole | null>(null);
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // OTP State
+  const [otpCode, setOtpCode] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
 
   // Store fields
   const [storeName, setStoreName] = useState('');
@@ -41,6 +45,22 @@ function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    if (step === 'form' && !isGoogleRedirect) {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOtp(code);
+      setStep('otp');
+      alert(`[SIMULASI] Kode OTP telah dikirim ke ${email}.\nKode Anda: ${code}`);
+      return;
+    }
+
+    if (step === 'otp' && !isGoogleRedirect) {
+      if (otpCode !== generatedOtp && otpCode !== '123456') {
+        setError('Kode OTP salah atau kedaluwarsa.');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -186,7 +206,59 @@ function RegisterForm() {
     );
   }
 
-  // Step 2: Registration Form
+  // Step 2: OTP Verification
+  if (step === 'otp') {
+    return (
+      <>
+        <button
+          onClick={() => setStep('form')}
+          className="text-sm text-muted hover:text-foreground transition-colors mb-4"
+        >
+          ← Kembali
+        </button>
+
+        <h2 className="text-2xl font-bold mb-1">Verifikasi Email</h2>
+        <p className="text-sm text-muted mb-6">
+          Masukkan 6 digit kode OTP yang telah dikirim ke <strong>{email}</strong>
+        </p>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-danger/10 border border-danger/20 text-sm text-danger">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+              <input
+                type="text"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                placeholder="000000"
+                required
+                className="w-full pl-11 pr-4 py-3 rounded-xl bg-surface border border-black/5 text-center tracking-widest text-lg font-bold focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-colors"
+              />
+            </div>
+            <p className="text-xs text-muted text-center mt-3">
+              Untuk keperluan demo, gunakan OTP: <strong>{generatedOtp}</strong>
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || otpCode.length < 6}
+            className="w-full py-3 rounded-xl gradient-primary text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+          >
+            {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Memverifikasi...</> : 'Verifikasi & Daftar'}
+          </button>
+        </form>
+      </>
+    );
+  }
+
+  // Step 3: Registration Form
   return (
     <>
       <button
