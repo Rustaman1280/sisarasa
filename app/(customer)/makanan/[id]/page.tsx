@@ -39,6 +39,7 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
   const { user } = useAuth();
   const router = useRouter();
   const [meal, setMeal] = useState<MealData | null>(null);
+  const [storeAddress, setStoreAddress] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [ordering, setOrdering] = useState(false);
@@ -53,14 +54,17 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
         const data = await getMeal(id);
         let currentMeal = data || getMockMeal(id);
         
-        if (!currentMeal.photoURL) {
-           try {
-             const s = await getStore(currentMeal.storeId);
-             if (s && s.photoURL) {
-               currentMeal.photoURL = s.photoURL;
-             }
-           } catch {}
-        }
+        // Fetch store data for photo URL and address
+        try {
+          const s = await getStore(currentMeal.storeId);
+          if (s) {
+            if (!currentMeal.photoURL && s.photoURL) {
+              currentMeal.photoURL = s.photoURL;
+            }
+            setStoreAddress(s.address || '');
+          }
+        } catch {}
+        
         setMeal(currentMeal);
       } catch {
         setMeal(getMockMeal(id));
@@ -186,7 +190,7 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
         <div className="flex items-center gap-3 text-sm">
           <MapPin className="w-4 h-4 text-secondary" />
           <span className="text-muted">Lokasi:</span>
-          <span className="font-medium">{meal.storeName}</span>
+          <span className="font-medium">{storeAddress || 'Lokasi tidak tersedia'}</span>
         </div>
         <div className="flex items-center gap-3 text-sm">
           <Star className="w-4 h-4 text-accent fill-accent" />
