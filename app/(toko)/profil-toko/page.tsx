@@ -6,6 +6,11 @@ import { getStoreByOwner, updateStore } from '@/app/lib/firestore';
 import { StoreData } from '@/app/lib/types';
 import { Loader2 } from 'lucide-react';
 
+const CITIES = [
+  'Jakarta', 'Bandung', 'Surabaya', 'Yogyakarta', 'Semarang',
+  'Bali', 'Medan', 'Makassar', 'Palembang', 'Balikpapan', 'Lainnya'
+];
+
 export default function ProfilTokoPage() {
   const { user } = useAuth();
   const [store, setStore] = useState<StoreData | null>(null);
@@ -16,6 +21,7 @@ export default function ProfilTokoPage() {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [address, setAddress] = useState('');
+  const [city, setCity] = useState(CITIES[0]);
 
   useEffect(() => {
     if (user) {
@@ -25,6 +31,7 @@ export default function ProfilTokoPage() {
           setName(data.name);
           setDesc(data.description);
           setAddress(data.address);
+          if (data.city) setCity(data.city);
         }
         setLoading(false);
       });
@@ -36,7 +43,7 @@ export default function ProfilTokoPage() {
     if (!store) return;
     setSaving(true);
     try {
-      await updateStore(store.id, { name, description: desc, address });
+      await updateStore(store.id, { name, description: desc, address, city });
       alert('Profil toko berhasil diperbarui!');
     } catch (err) {
       console.error(err);
@@ -60,6 +67,14 @@ export default function ProfilTokoPage() {
           <div>
             <label className="text-sm font-medium text-muted mb-1.5 block">Deskripsi Singkat</label>
             <textarea required value={desc} onChange={e=>setDesc(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 resize-none" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-muted mb-1.5 block">Kota</label>
+            <select required value={city} onChange={e=>setCity(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50">
+              {CITIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="text-sm font-medium text-muted mb-1.5 block">Alamat Lengkap</label>

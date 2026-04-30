@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Clock, MapPin, Star, Tag } from 'lucide-react';
 import ScrollReveal from '../ui/ScrollReveal';
-import { getMeals } from '@/app/lib/firestore';
+import { getMeals, getStore } from '@/app/lib/firestore';
 import { MealData } from '@/app/lib/types';
 import Link from 'next/link';
 
@@ -31,8 +31,24 @@ export default function FeaturedMeals() {
     async function fetchMeals() {
       try {
         const data = await getMeals({ activeOnly: true });
+        
+        // Fetch store city and photo if missing
+        const filled = await Promise.all(data.map(async (m) => {
+          let updated = { ...m };
+          if (!updated.storeCity || !updated.photoURL) {
+            try {
+              const s = await getStore(m.storeId);
+              if (s) {
+                if (!updated.photoURL && s.photoURL) updated.photoURL = s.photoURL;
+                if (!updated.storeCity && s.city) updated.storeCity = s.city;
+              }
+            } catch {}
+          }
+          return updated;
+        }));
+
         // Sort by biggest discount and take top 6
-        const sorted = [...data].sort((a, b) => getDiscount(b.originalPrice, b.discountedPrice) - getDiscount(a.originalPrice, a.discountedPrice)).slice(0, 6);
+        const sorted = [...filled].sort((a, b) => getDiscount(b.originalPrice, b.discountedPrice) - getDiscount(a.originalPrice, a.discountedPrice)).slice(0, 6);
         setMeals(sorted);
       } catch (error) {
         console.error('Error fetching meals:', error);
@@ -140,6 +156,12 @@ export default function FeaturedMeals() {
                         <Clock className="w-3.5 h-3.5" />
                         {meal.pickupTimeStart} - {meal.pickupTimeEnd}
                       </span>
+                      {meal.storeCity && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {meal.storeCity}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </Link>

@@ -64,6 +64,7 @@ export default function ProdukBaruPage() {
       await createMeal({
         storeId: store.id,
         storeName: store.name,
+        storeCity: store.city || '',
         title,
         description: desc,
         originalPrice: orig,

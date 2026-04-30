@@ -36,6 +36,7 @@ export default function BerandaPage() {
   const { user } = useAuth();
   const [meals, setMeals] = useState<MealData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCity, setSelectedCity] = useState('Semua Kota');
   const [favorites, setFavorites] = useState<string[]>([]);
 
   const timeWindows = [
@@ -90,16 +91,19 @@ export default function BerandaPage() {
       try {
         const data = await getMeals({ activeOnly: true });
         let list = data;
-        // If meal has no photoURL, try to load store photo
+        // If meal has no photoURL or storeCity, try to load from store
         const filled = await Promise.all(list.map(async (m) => {
-          if (m.photoURL && m.photoURL.length > 0) return m;
-          try {
-            const s = await getStore(m.storeId);
-            if (s && s.photoURL) {
-              return { ...m, photoURL: s.photoURL };
-            }
-          } catch {}
-          return m;
+          let updated = { ...m };
+          if (!updated.photoURL || !updated.storeCity) {
+            try {
+              const s = await getStore(m.storeId);
+              if (s) {
+                if (!updated.photoURL && s.photoURL) updated.photoURL = s.photoURL;
+                if (!updated.storeCity && s.city) updated.storeCity = s.city;
+              }
+            } catch {}
+          }
+          return updated;
         }));
         setMeals(filled);
       } catch {
@@ -120,10 +124,13 @@ export default function BerandaPage() {
       loadUserFavorites();
   }, []);
 
+  const availableCities = ['Semua Kota', ...Array.from(new Set(meals.map(m => m.storeCity).filter(Boolean)))];
+
   const filteredMeals = meals.filter((meal) => {
     const matchSearch = meal.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       meal.storeName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchSearch;
+    const matchCity = selectedCity === 'Semua Kota' || meal.storeCity === selectedCity;
+    return matchSearch && matchCity;
   });
 
   const promos = [...filteredMeals].sort((a, b) => getDiscount(a.originalPrice, a.discountedPrice) - getDiscount(b.originalPrice, b.discountedPrice)).slice(0, 8);
@@ -144,16 +151,29 @@ export default function BerandaPage() {
         </p>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-6">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Cari makanan atau restoran..."
-          className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-colors placeholder:text-muted/50"
-        />
+      {/* Search & Filter */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari makanan atau restoran..."
+            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-colors placeholder:text-muted/50"
+          />
+        </div>
+        <div className="w-full sm:w-48">
+          <select
+            value={selectedCity}
+            onChange={(e) => setSelectedCity(e.target.value)}
+            className="w-full px-4 py-3.5 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-colors cursor-pointer appearance-none"
+          >
+            {availableCities.map(city => (
+              <option key={city as string} value={city as string}>{city as string}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Promo Section */}

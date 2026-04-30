@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search, Clock, Star, SlidersHorizontal, X } from 'lucide-react';
-import { getMeals } from '@/app/lib/firestore';
+import { getMeals, getStore } from '@/app/lib/firestore';
 import { MealData } from '@/app/lib/types';
 
 const emojiMap: Record<string, string> = { restoran: '🍛', kafe: '☕', bakery: '🥐', catering: '🍱' };
@@ -28,6 +28,7 @@ const sortOptions = [
 export default function JelajahiPage() {
   const [meals, setMeals] = useState<MealData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCity, setSelectedCity] = useState('Semua Kota');
   // category filter removed
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
@@ -36,7 +37,20 @@ export default function JelajahiPage() {
     async function fetchMeals() {
       try {
         const data = await getMeals({ activeOnly: true });
-        setMeals(data);
+        const filled = await Promise.all(data.map(async (m) => {
+          let updated = { ...m };
+          if (!updated.storeCity || !updated.photoURL) {
+            try {
+              const s = await getStore(m.storeId);
+              if (s) {
+                if (!updated.photoURL && s.photoURL) updated.photoURL = s.photoURL;
+                if (!updated.storeCity && s.city) updated.storeCity = s.city;
+              }
+            } catch {}
+          }
+          return updated;
+        }));
+        setMeals(filled);
       } catch {
         setMeals([]);
       }
@@ -44,11 +58,14 @@ export default function JelajahiPage() {
     fetchMeals();
   }, []);
 
+  const availableCities = ['Semua Kota', ...Array.from(new Set(meals.map(m => m.storeCity).filter(Boolean)))];
+
   let filtered = meals
     .filter((m) =>
       m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.storeName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    )
+    .filter((m) => selectedCity === 'Semua Kota' || m.storeCity === selectedCity);
 
   if (sortBy === 'price-low') {
     filtered = [...filtered].sort((a, b) => a.discountedPrice - b.discountedPrice);
@@ -85,7 +102,22 @@ export default function JelajahiPage() {
       {/* Filters panel */}
       {showFilters && (
         <div className="glass rounded-xl p-4 mb-6 animate-fadeIn space-y-4">
-          {/* Kategori filter removed */}
+          <div>
+            <label className="text-xs font-medium text-muted mb-2 block">Filter Kota</label>
+            <div className="flex flex-wrap gap-2">
+              {availableCities.map((city) => (
+                <button
+                  key={city as string}
+                  onClick={() => setSelectedCity(city as string)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    selectedCity === city ? 'gradient-primary text-white' : 'bg-surface text-muted hover:text-foreground'
+                  }`}
+                >
+                  {city as string}
+                </button>
+              ))}
+            </div>
+          </div>
           <div>
             <label className="text-xs font-medium text-muted mb-2 block">Urutkan</label>
             <div className="flex flex-wrap gap-2">

@@ -22,6 +22,7 @@ export interface StoreData {
   name: string;
   description: string;
   address: string;
+  city?: string;
   category: 'restoran' | 'kafe' | 'bakery' | 'catering' | 'lainnya';
   photoURL?: string;
   rating: number;
@@ -34,6 +35,7 @@ export interface MealData {
   id: string;
   storeId: string;
   storeName: string;
+  storeCity?: string;
   title: string;
   description: string;
   originalPrice: number;
