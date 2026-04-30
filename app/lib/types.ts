@@ -62,6 +62,7 @@ export interface OrderData {
   quantity: number;
   totalPrice: number;
   status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  notes?: string;
   createdAt: Timestamp;
 }
 

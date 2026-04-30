@@ -60,6 +60,11 @@ export default function PesananPage() {
                   <span>{order.quantity}x • {formatPrice(order.totalPrice)}</span>
                   <span>{formatDate(order.createdAt)}</span>
                 </div>
+                {order.notes && (
+                  <div className="mt-3 pt-3 border-t border-black/5">
+                    <p className="text-xs text-muted"><span className="font-medium text-foreground">Catatan:</span> {order.notes}</p>
+                  </div>
+                )}
               </div>
             );
           })}

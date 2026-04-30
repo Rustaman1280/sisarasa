@@ -50,7 +50,7 @@ export async function getUser(uid: string): Promise<UserData | null> {
 }
 
 export async function updateUser(uid: string, data: Partial<UserData>): Promise<void> {
-  await updateDoc(doc(db, 'users', uid), data);
+  await setDoc(doc(db, 'users', uid), data, { merge: true });
 }
 
 // ==================== STORES ====================
@@ -85,7 +85,7 @@ export async function getStoreByOwner(ownerId: string): Promise<StoreData | null
 }
 
 export async function updateStore(storeId: string, data: Partial<StoreData>): Promise<void> {
-  await updateDoc(doc(db, 'stores', storeId), data);
+  await setDoc(doc(db, 'stores', storeId), data, { merge: true });
 }
 
 // ==================== MEALS ====================
@@ -147,7 +147,7 @@ export async function getMealsByStore(storeId: string): Promise<MealData[]> {
 }
 
 export async function updateMeal(mealId: string, data: Partial<MealData>): Promise<void> {
-  await updateDoc(doc(db, 'meals', mealId), data);
+  await setDoc(doc(db, 'meals', mealId), data, { merge: true });
 }
 
 export async function deleteMeal(mealId: string): Promise<void> {
@@ -164,17 +164,19 @@ export async function createOrder(data: Omit<OrderData, 'id' | 'createdAt'>): Pr
 
   // Update meal quantity
   const mealRef = doc(db, 'meals', data.mealId);
-  await updateDoc(mealRef, {
+  await setDoc(mealRef, {
     quantityLeft: increment(-data.quantity),
-  });
+  }, { merge: true });
 
   // Update user stats
   const userRef = doc(db, 'users', data.customerId);
-  await updateDoc(userRef, {
-    'stats.totalOrders': increment(1),
-    'stats.totalSaved': increment(data.quantity),
-    'stats.co2Reduced': increment(data.quantity * 0.8),
-  });
+  await setDoc(userRef, {
+    stats: {
+      totalOrders: increment(1),
+      totalSaved: increment(data.quantity),
+      co2Reduced: increment(data.quantity * 0.8),
+    }
+  }, { merge: true });
 
   return docRef.id;
 }
@@ -182,27 +184,37 @@ export async function createOrder(data: Omit<OrderData, 'id' | 'createdAt'>): Pr
 export async function getOrdersByCustomer(customerId: string): Promise<OrderData[]> {
   const q = query(
     collection(db, 'orders'),
-    where('customerId', '==', customerId),
-    orderBy('createdAt', 'desc')
+    where('customerId', '==', customerId)
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
+  const orders = snapshot.docs.map((docSnap) => ({
     id: docSnap.id,
     ...docSnap.data(),
   })) as OrderData[];
+  
+  return orders.sort((a, b) => {
+    const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+    const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+    return timeB - timeA;
+  });
 }
 
 export async function getOrdersByStore(storeId: string): Promise<OrderData[]> {
   const q = query(
     collection(db, 'orders'),
-    where('storeId', '==', storeId),
-    orderBy('createdAt', 'desc')
+    where('storeId', '==', storeId)
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
+  const orders = snapshot.docs.map((docSnap) => ({
     id: docSnap.id,
     ...docSnap.data(),
   })) as OrderData[];
+  
+  return orders.sort((a, b) => {
+    const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+    const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+    return timeB - timeA;
+  });
 }
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {

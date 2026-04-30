@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Clock, MapPin, Star, Minus, Plus, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Star, Minus, Plus, Loader2, CheckCircle, X, Store } from 'lucide-react';
 import { useAuth } from '@/app/lib/auth-context';
-import { getMeal, createOrder } from '@/app/lib/firestore';
+import { getMeal, getStore, createOrder } from '@/app/lib/firestore';
 import { MealData } from '@/app/lib/types';
 import { use } from 'react';
 
@@ -43,12 +43,25 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true);
   const [ordering, setOrdering] = useState(false);
   const [ordered, setOrdered] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     async function fetchMeal() {
       try {
         const data = await getMeal(id);
-        setMeal(data || getMockMeal(id));
+        let currentMeal = data || getMockMeal(id);
+        
+        if (!currentMeal.photoURL) {
+           try {
+             const s = await getStore(currentMeal.storeId);
+             if (s && s.photoURL) {
+               currentMeal.photoURL = s.photoURL;
+             }
+           } catch {}
+        }
+        setMeal(currentMeal);
       } catch {
         setMeal(getMockMeal(id));
       } finally {
@@ -73,6 +86,7 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
         quantity,
         totalPrice: meal.discountedPrice * quantity,
         status: 'pending',
+        notes: notes.trim(),
       });
       setOrdered(true);
     } catch (err) {
@@ -104,10 +118,10 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
         <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="w-10 h-10 text-success" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Pesanan Berhasil!</h2>
+        <h2 className="text-2xl font-bold mb-2">Booking Berhasil!</h2>
         <p className="text-muted mb-2">{meal.title} x{quantity}</p>
         <p className="text-sm text-muted mb-8">
-          Ambil pesananmu di <strong>{meal.storeName}</strong> pukul {meal.pickupTimeStart} - {meal.pickupTimeEnd}
+          Pesananmu telah di-booking. Silakan datang ke <strong>{meal.storeName}</strong> pada pukul {meal.pickupTimeStart} - {meal.pickupTimeEnd} dan lakukan pembayaran di tempat.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button onClick={() => router.push('/pesanan')} className="px-6 py-3 rounded-xl gradient-primary text-white font-semibold">
@@ -132,7 +146,11 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Image */}
       <div className="relative h-56 sm:h-72 rounded-2xl bg-gradient-to-br from-surface-light to-surface flex items-center justify-center overflow-hidden mb-6">
-        <span className="text-8xl">{emojiMap[meal.category] || '🍽️'}</span>
+        {meal.photoURL ? (
+          <img src={meal.photoURL} alt={meal.title} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-8xl">{emojiMap[meal.category] || '🍽️'}</span>
+        )}
         <div className="absolute top-4 left-4 gradient-primary px-3 py-1 rounded-full text-sm font-bold text-white">
           {discount === 100 ? 'GRATIS' : `-${discount}%`}
         </div>
@@ -206,19 +224,65 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
         </div>
 
         <button
-          onClick={handleOrder}
+          onClick={() => setShowCheckout(true)}
           disabled={ordering || meal.quantityLeft === 0}
           className="w-full py-3.5 rounded-xl gradient-primary text-white font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
         >
-          {ordering ? (
-            <><Loader2 className="w-5 h-5 animate-spin" /> Memproses...</>
-          ) : meal.quantityLeft === 0 ? (
-            'Habis'
-          ) : (
-            'Pesan Sekarang'
-          )}
+          {meal.quantityLeft === 0 ? 'Habis' : 'Booking Sekarang'}
         </button>
       </div>
+      {/* Checkout Modal */}
+      {showCheckout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="glass bg-surface/95 w-full max-w-md rounded-3xl p-6 shadow-2xl relative animate-scaleIn">
+            <button onClick={() => setShowCheckout(false)} className="absolute top-5 right-5 p-2 rounded-full bg-black/5 hover:bg-black/10 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="text-xl font-bold mb-4">Konfirmasi Booking</h3>
+            
+            <div className="bg-surface-light rounded-xl p-4 mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-muted">{meal.title} x{quantity}</span>
+                <span className="text-sm font-bold text-primary">{formatPrice(meal.discountedPrice * quantity)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-black/5">
+                <span className="text-sm font-medium">Total Tagihan</span>
+                <span className="text-lg font-extrabold text-primary">{formatPrice(meal.discountedPrice * quantity)}</span>
+              </div>
+            </div>
+
+            <h4 className="text-sm font-medium mb-2">Catatan Pesanan <span className="text-muted font-normal">(Opsional)</span></h4>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Contoh: Tolong jangan pakai sambal, ambil sekitar jam 7 malam ya..."
+              rows={2}
+              className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 resize-none mb-6"
+            />
+
+            <h4 className="text-sm font-medium mb-3">Metode Pembayaran</h4>
+            <div className="mb-6">
+              <div className="flex items-center gap-4 p-4 rounded-2xl border-2 border-primary bg-primary/5 text-primary">
+                <Store className="w-6 h-6" />
+                <div className="flex flex-col">
+                  <span className="font-bold">Bayar di Tempat</span>
+                  <span className="text-xs opacity-80">Bayar saat mengambil pesanan di toko</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleOrder}
+              disabled={ordering}
+              className="w-full py-3.5 rounded-xl gradient-primary text-white font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {ordering ? <><Loader2 className="w-5 h-5 animate-spin" /> Memproses...</> : 'Konfirmasi Booking'}
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
