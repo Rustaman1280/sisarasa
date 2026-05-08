@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Clock, MapPin, Star, Minus, Plus, Loader2, CheckCircle, X, Store, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Star, Minus, Plus, Loader2, CheckCircle, X, Store, MessageCircle, Navigation } from 'lucide-react';
 import { useAuth } from '@/app/lib/auth-context';
 import { getMeal, getStore, createOrder } from '@/app/lib/firestore';
 import { MealData } from '@/app/lib/types';
@@ -40,6 +40,7 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
   const router = useRouter();
   const [meal, setMeal] = useState<MealData | null>(null);
   const [storeAddress, setStoreAddress] = useState<string>('');
+  const [storeMapsLink, setStoreMapsLink] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [ordering, setOrdering] = useState(false);
@@ -62,6 +63,7 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
               currentMeal.photoURL = s.photoURL;
             }
             setStoreAddress(s.address || '');
+            if (s.mapsLink) setStoreMapsLink(s.mapsLink);
           }
         } catch {}
         
@@ -198,10 +200,22 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
           <span className="text-muted">Waktu Pengambilan:</span>
           <span className="font-medium">{meal.pickupTimeStart} - {meal.pickupTimeEnd}</span>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <MapPin className="w-4 h-4 text-secondary" />
-          <span className="text-muted">Lokasi:</span>
-          <span className="font-medium">{storeAddress || 'Lokasi tidak tersedia'}</span>
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-3">
+            <MapPin className="w-4 h-4 text-secondary" />
+            <span className="text-muted">Lokasi:</span>
+            <span className="font-medium">{storeAddress || 'Lokasi tidak tersedia'}</span>
+          </div>
+          {storeMapsLink && (
+            <a 
+              href={storeMapsLink} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs font-bold text-secondary bg-secondary/10 px-2 py-1 rounded-md hover:bg-secondary/20 transition-colors shrink-0"
+            >
+              <Navigation className="w-3 h-3" /> Buka Maps
+            </a>
+          )}
         </div>
         <div className="flex items-center gap-3 text-sm">
           <Star className="w-4 h-4 text-accent fill-accent" />

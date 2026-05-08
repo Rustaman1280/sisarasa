@@ -19,6 +19,7 @@ export default function ProfilTokoPage() {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [address, setAddress] = useState('');
+  const [mapsLink, setMapsLink] = useState('');
   const [city, setCity] = useState('');
   
   // Wilayah State
@@ -34,6 +35,7 @@ export default function ProfilTokoPage() {
           setName(data.name);
           setDesc(data.description);
           setAddress(data.address);
+          if (data.mapsLink) setMapsLink(data.mapsLink);
           if (data.city) setCity(data.city);
         }
         setLoading(false);
@@ -68,7 +70,7 @@ export default function ProfilTokoPage() {
     if (!store) return;
     setSaving(true);
     try {
-      await updateStore(store.id, { name, description: desc, address, city });
+      await updateStore(store.id, { name, description: desc, address, mapsLink, city });
       alert('Profil toko berhasil diperbarui!');
     } catch (err) {
       console.error(err);
@@ -116,6 +118,11 @@ export default function ProfilTokoPage() {
           <div>
             <label className="text-sm font-medium text-muted mb-1.5 block">Alamat Lengkap</label>
             <textarea required value={address} onChange={e=>setAddress(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 resize-none" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-muted mb-1.5 block">Link Google Maps</label>
+            <input type="url" value={mapsLink} onChange={e=>setMapsLink(e.target.value)} placeholder="https://maps.google.com/..." className="w-full px-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50" />
+            <p className="text-xs text-muted mt-1">Tambahkan tautan (link) Google Maps dari lokasi toko Anda.</p>
           </div>
           
           <div className="pt-4 border-t border-black/5 flex justify-end">

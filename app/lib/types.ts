@@ -22,6 +22,7 @@ export interface StoreData {
   name: string;
   description: string;
   address: string;
+  mapsLink?: string;
   city?: string;
   category: 'restoran' | 'kafe' | 'bakery' | 'catering' | 'lainnya';
   photoURL?: string;

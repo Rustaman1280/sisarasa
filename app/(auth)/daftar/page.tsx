@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, Eye, EyeOff, User, Store, ShoppingBag, MapPin, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Store, ShoppingBag, MapPin, Map, Loader2 } from 'lucide-react';
 import { useAuth } from '@/app/lib/auth-context';
 import { createUser, createStore, getUser } from '@/app/lib/firestore';
 import { UserRole, StoreCategory } from '@/app/lib/types';
@@ -13,7 +13,7 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const isGoogleRedirect = searchParams.get('google') === 'true';
 
-  const [step, setStep] = useState<'role' | 'form' | 'otp'>(isGoogleRedirect ? 'role' : 'role');
+  const [step, setStep] = useState<'role' | 'form' | 'verify'>(isGoogleRedirect ? 'role' : 'role');
   const [role, setRole] = useState<UserRole | null>(null);
 
   const [displayName, setDisplayName] = useState('');
@@ -21,21 +21,20 @@ function RegisterForm() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // OTP State
-  const [otpCode, setOtpCode] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
+
 
   // Store fields
   const [storeName, setStoreName] = useState('');
   // categories removed from registration; default to 'lainnya'
   const [storeCategory, setStoreCategory] = useState<StoreCategory>('lainnya');
   const [storeAddress, setStoreAddress] = useState('');
+  const [storeMapsLink, setStoreMapsLink] = useState('');
   const [storeDescription, setStoreDescription] = useState('');
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { signUp, signInWithGoogle, user } = useAuth();
+  const { signUp, signInWithGoogle, user, logout } = useAuth();
 
   const handleRoleSelect = (selectedRole: UserRole) => {
     setRole(selectedRole);
@@ -46,20 +45,7 @@ function RegisterForm() {
     e.preventDefault();
     setError('');
     
-    if (step === 'form' && !isGoogleRedirect) {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedOtp(code);
-      setStep('otp');
-      alert(`[SIMULASI] Kode OTP telah dikirim ke ${email}.\nKode Anda: ${code}`);
-      return;
-    }
 
-    if (step === 'otp' && !isGoogleRedirect) {
-      if (otpCode !== generatedOtp && otpCode !== '123456') {
-        setError('Kode OTP salah atau kedaluwarsa.');
-        return;
-      }
-    }
 
     setLoading(true);
 
@@ -90,8 +76,16 @@ function RegisterForm() {
           name: storeName,
           description: storeDescription || `${storeName} - Mitra SisaRasa`,
           address: storeAddress,
+          mapsLink: storeMapsLink,
           category: storeCategory,
         });
+      }
+
+      // If email signup, require verification
+      if (!isGoogleRedirect) {
+        await logout();
+        setStep('verify');
+        return;
       }
 
       // Redirect based on role
@@ -142,6 +136,7 @@ function RegisterForm() {
           name: storeName || googleUser.displayName || 'Toko Saya',
           description: storeDescription || 'Mitra SisaRasa',
           address: storeAddress || 'Belum diatur',
+          mapsLink: storeMapsLink || '',
           category: storeCategory,
         });
         router.push('/dashboard');
@@ -206,55 +201,26 @@ function RegisterForm() {
     );
   }
 
-  // Step 2: OTP Verification
-  if (step === 'otp') {
+  // Step 2: Verification Instruction
+  if (step === 'verify') {
     return (
-      <>
-        <button
-          onClick={() => setStep('form')}
-          className="text-sm text-muted hover:text-foreground transition-colors mb-4"
-        >
-          ← Kembali
-        </button>
-
-        <h2 className="text-2xl font-bold mb-1">Verifikasi Email</h2>
-        <p className="text-sm text-muted mb-6">
-          Masukkan 6 digit kode OTP yang telah dikirim ke <strong>{email}</strong>
+      <div className="text-center">
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Mail className="w-8 h-8 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Verifikasi Email Anda</h2>
+        <p className="text-sm text-muted mb-8">
+          Kami telah mengirimkan tautan verifikasi ke <strong>{email}</strong>. 
+          Silakan cek kotak masuk atau folder spam Anda dan klik tautan tersebut untuk mengaktifkan akun Anda.
         </p>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-xl bg-danger/10 border border-danger/20 text-sm text-danger">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-              <input
-                type="text"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                placeholder="000000"
-                required
-                className="w-full pl-11 pr-4 py-3 rounded-xl bg-surface border border-black/5 text-center tracking-widest text-lg font-bold focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-colors"
-              />
-            </div>
-            <p className="text-xs text-muted text-center mt-3">
-              Untuk keperluan demo, gunakan OTP: <strong>{generatedOtp}</strong>
-            </p>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || otpCode.length < 6}
-            className="w-full py-3 rounded-xl gradient-primary text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
-          >
-            {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Memverifikasi...</> : 'Verifikasi & Daftar'}
-          </button>
-        </form>
-      </>
+        <Link
+          href="/masuk"
+          className="w-full py-3 rounded-xl gradient-primary text-white font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+        >
+          Masuk ke Akun
+        </Link>
+      </div>
     );
   }
 
@@ -373,6 +339,21 @@ function RegisterForm() {
                   required
                   rows={2}
                   className="w-full pl-11 pr-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-colors placeholder:text-muted/50 resize-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-muted mb-1.5 block">Link Google Maps</label>
+              <div className="relative">
+                <Map className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+                <input
+                  type="url"
+                  value={storeMapsLink}
+                  onChange={(e) => setStoreMapsLink(e.target.value)}
+                  placeholder="https://maps.google.com/..."
+                  required
+                  className="w-full pl-11 pr-4 py-3 rounded-xl bg-surface border border-black/5 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-colors placeholder:text-muted/50"
                 />
               </div>
             </div>

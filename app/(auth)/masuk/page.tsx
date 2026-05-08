@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, logout } = useAuth();
   const router = useRouter();
 
   const redirectByRole = async (uid: string) => {
@@ -33,6 +33,14 @@ export default function LoginPage() {
 
     try {
       const user = await signIn(email, password);
+
+      if (!user.emailVerified) {
+        await logout();
+        setError('Email belum diverifikasi. Silakan cek kotak masuk/spam Anda.');
+        setLoading(false);
+        return;
+      }
+
       await redirectByRole(user.uid);
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential') {
