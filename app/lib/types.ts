@@ -68,3 +68,22 @@ export interface OrderData {
 
 export type StoreCategory = StoreData['category'];
 export type OrderStatus = OrderData['status'];
+
+export interface ChatData {
+  id: string; // `${customerId}_${storeId}`
+  customerId: string;
+  customerName: string;
+  storeId: string;
+  storeName: string;
+  storePhotoURL?: string;
+  lastMessage: string;
+  updatedAt: Timestamp;
+}
+
+export interface MessageData {
+  id: string;
+  chatId: string;
+  senderId: string;
+  text: string;
+  createdAt: Timestamp;
+}

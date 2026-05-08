@@ -39,15 +39,6 @@ export default function BerandaPage() {
   const [selectedCity, setSelectedCity] = useState('Semua Kota');
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  const timeWindows = [
-    { key: 'rekomendasi', label: 'Rekomendasi' },
-    { key: 'pagi', label: 'Pagi (06-11)' },
-    { key: 'siang', label: 'Siang (12-17)' },
-    { key: 'malam', label: 'Malam (18-24)' },
-  ] as const;
-
-  
-
   function parseHour(t: string) {
     const [h] = t.split(':');
     const n = parseInt(h, 10);
@@ -72,16 +63,6 @@ export default function BerandaPage() {
     if (stores.length === 0) return null;
     const sorted = [...stores].sort((a, b) => b.meals.length - a.meals.length);
     return sorted[0];
-  }
-
-  function storesForWindow(stores: ReturnType<typeof groupByStore>, key: 'rekomendasi' | 'pagi' | 'siang' | 'malam') {
-    if (key === 'rekomendasi') return stores;
-    return stores.filter((s) => s.meals.some((m) => {
-      const h = parseHour(m.pickupTimeStart);
-      if (key === 'pagi') return h >= 6 && h <= 11;
-      if (key === 'siang') return h >= 12 && h <= 17;
-      return h >= 18 && h <= 24;
-    }));
   }
 
   // Ratings are handled on the meal detail page. Beranda shows read-only averages.
@@ -141,7 +122,6 @@ export default function BerandaPage() {
 
   const stores = groupByStore(filteredMeals);
   const recommended = pickRecommended(stores);
-  const others = stores.filter((s) => !recommended || s.storeId !== recommended.storeId);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -324,37 +304,6 @@ export default function BerandaPage() {
             </div>
           </div>
         )}
-
-        {/* Render each time window as its own stacked section */}
-              {timeWindows.filter(w => w.key !== 'rekomendasi').map((w) => (
-          <div key={w.key} className="mb-6">
-            <h4 className="text-sm font-semibold mb-3">{w.label}</h4>
-            <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
-              {storesForWindow(others, w.key as 'pagi' | 'siang' | 'malam').map((s) => (
-                <Link key={s.storeId} href={`/makanan/${s.meals[0].id}`} className="min-w-[220px] rounded-2xl glass overflow-hidden flex-shrink-0">
-                  <div className="h-36 relative bg-gradient-to-br from-surface-light to-surface flex items-center justify-center overflow-hidden">
-                    {s.photoURL ? <img src={s.photoURL} alt={s.storeName} className="w-full h-full object-cover" /> : <div className="text-3xl">🍽️</div>}
-                  </div>
-                  <div className="p-3">
-                    <div className="text-xs text-muted">{s.storeName}</div>
-                    <div className="font-bold text-sm">{s.meals[0].title}</div>
-                    <div className="text-sm text-primary mt-1">{formatPrice(s.meals[0].discountedPrice)}</div>
-                    {(((s.meals[0] as any).ratingCount || 0) > 0) ? (
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="text-yellow-400 text-sm">
-                          {Array.from({ length: 5 }).map((_, i) => i < Math.round(((s.meals[0] as any).rating || 0)) ? '★' : '☆').join('')}
-                        </div>
-                        <span className="text-xs text-muted ml-2">{(s.meals[0] as any).rating} ({(s.meals[0] as any).ratingCount || 0})</span>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted mt-2">Belum dinilai</div>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );

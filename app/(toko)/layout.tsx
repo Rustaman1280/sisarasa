@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LayoutDashboard, Package, ClipboardList, Store as StoreIcon, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, Store as StoreIcon, LogOut, Menu, X, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/app/lib/auth-context';
 import { getStoreByOwner } from '@/app/lib/firestore';
 import { StoreData } from '@/app/lib/types';
@@ -13,6 +13,7 @@ const sidebarItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Produk', href: '/produk', icon: Package },
   { label: 'Pesanan Masuk', href: '/pesanan-masuk', icon: ClipboardList },
+  { label: 'Pesan', href: '/chat-toko', icon: MessageCircle },
   { label: 'Profil Toko', href: '/profil-toko', icon: StoreIcon },
 ];
 

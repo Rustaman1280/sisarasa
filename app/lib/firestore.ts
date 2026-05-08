@@ -13,6 +13,7 @@ import {
   Timestamp,
   addDoc,
   increment,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { UserData, StoreData, MealData, OrderData, UserRole, OrderStatus } from './types';
@@ -219,4 +220,67 @@ export async function getOrdersByStore(storeId: string): Promise<OrderData[]> {
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
   await updateDoc(doc(db, 'orders', orderId), { status });
+}
+
+// ==================== CHATS ====================
+
+export async function getChatsByCustomer(customerId: string): Promise<import('./types').ChatData[]> {
+  const q = query(
+    collection(db, 'chats'),
+    where('customerId', '==', customerId)
+  );
+  const snapshot = await getDocs(q);
+  const chats = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as import('./types').ChatData));
+  return chats.sort((a, b) => {
+    const timeA = a.updatedAt?.toMillis ? a.updatedAt.toMillis() : 0;
+    const timeB = b.updatedAt?.toMillis ? b.updatedAt.toMillis() : 0;
+    return timeB - timeA;
+  });
+}
+
+export async function getChatsByStore(storeId: string): Promise<import('./types').ChatData[]> {
+  const q = query(
+    collection(db, 'chats'),
+    where('storeId', '==', storeId)
+  );
+  const snapshot = await getDocs(q);
+  const chats = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as import('./types').ChatData));
+  return chats.sort((a, b) => {
+    const timeA = a.updatedAt?.toMillis ? a.updatedAt.toMillis() : 0;
+    const timeB = b.updatedAt?.toMillis ? b.updatedAt.toMillis() : 0;
+    return timeB - timeA;
+  });
+}
+
+export async function sendMessage(
+  customerId: string,
+  customerName: string,
+  storeId: string,
+  storeName: string,
+  senderId: string,
+  text: string,
+  storePhotoURL?: string
+): Promise<void> {
+  const chatId = `${customerId}_${storeId}`;
+  const now = Timestamp.now();
+  
+  // Update or create chat document
+  await setDoc(doc(db, 'chats', chatId), {
+    id: chatId,
+    customerId,
+    customerName,
+    storeId,
+    storeName,
+    storePhotoURL: storePhotoURL || '',
+    lastMessage: text,
+    updatedAt: now,
+  }, { merge: true });
+
+  // Add message to subcollection
+  await addDoc(collection(db, 'chats', chatId, 'messages'), {
+    chatId,
+    senderId,
+    text,
+    createdAt: now,
+  });
 }

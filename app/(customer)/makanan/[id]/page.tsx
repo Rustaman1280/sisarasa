@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Clock, MapPin, Star, Minus, Plus, Loader2, CheckCircle, X, Store } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Star, Minus, Plus, Loader2, CheckCircle, X, Store, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/app/lib/auth-context';
 import { getMeal, getStore, createOrder } from '@/app/lib/firestore';
 import { MealData } from '@/app/lib/types';
@@ -163,7 +163,18 @@ export default function MealDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Info */}
       <div className="mb-6">
-        <p className="text-sm text-muted mb-1">{meal.storeName}</p>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm text-muted">{meal.storeName}</p>
+          {user && (
+            <button 
+              onClick={() => router.push(`/chat/${user.uid}_${meal.storeId}`)}
+              className="text-xs font-bold text-primary flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              Chat Penjual
+            </button>
+          )}
+        </div>
         <h1 className="text-2xl font-bold mb-2">{meal.title}</h1>
         <p className="text-sm text-muted leading-relaxed">{meal.description}</p>
       </div>
