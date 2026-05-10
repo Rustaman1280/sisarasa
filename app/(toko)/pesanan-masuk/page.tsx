@@ -72,6 +72,11 @@ export default function PesananMasukPage() {
                 </div>
                 <p className="text-sm text-muted">{order.quantity}x {order.mealTitle}</p>
                 <p className="text-xs text-muted mt-2">Total: Rp {order.totalPrice.toLocaleString('id-ID')}</p>
+                {order.notes && (
+                  <div className="mt-2 pt-2 border-t border-black/5">
+                    <p className="text-xs text-muted"><span className="font-medium text-foreground">Catatan:</span> {order.notes}</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2 border-t border-black/5 md:border-0 pt-3 md:pt-0">
