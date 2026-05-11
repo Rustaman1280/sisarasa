@@ -52,7 +52,12 @@ function RegisterForm() {
     try {
       let uid: string;
 
-      if (isGoogleRedirect && user) {
+      if (isGoogleRedirect) {
+        if (!user) {
+          setError('Sesi Google tidak ditemukan. Silakan muat ulang halaman atau coba masuk kembali.');
+          setLoading(false);
+          return;
+        }
         // Google user already logged in, just create Firestore doc
         uid = user.uid;
         await createUser(
@@ -95,12 +100,13 @@ function RegisterForm() {
         router.push('/beranda');
       }
     } catch (err: any) {
+      console.error('Daftar error:', err);
       if (err.code === 'auth/email-already-in-use') {
         setError('Email sudah digunakan. Silakan masuk atau gunakan email lain.');
       } else if (err.code === 'auth/weak-password') {
         setError('Password terlalu lemah. Gunakan minimal 6 karakter.');
       } else {
-        setError('Terjadi kesalahan. Silakan coba lagi.');
+        setError(err.message || 'Terjadi kesalahan. Silakan coba lagi.');
       }
     } finally {
       setLoading(false);
@@ -144,7 +150,12 @@ function RegisterForm() {
         router.push('/beranda');
       }
     } catch (err: any) {
-      setError('Gagal mendaftar dengan Google.');
+      console.error('Google SignUp error:', err);
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('Proses masuk Google dibatalkan.');
+      } else {
+        setError(err.message || 'Gagal mendaftar dengan Google.');
+      }
     } finally {
       setLoading(false);
     }
